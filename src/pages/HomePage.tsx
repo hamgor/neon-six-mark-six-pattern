@@ -15,8 +15,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MARKSIX_DRAWS } from '@shared/mock-data';
-import { computeScores, generateSets, DEFAULT_WEIGHTS, Weights, Scores } from '@/lib/lottery-utils';
+import { computeScores, generateSets, DEFAULT_WEIGHTS, Weights, Scores, Frequency, PairMatrix } from '@/lib/lottery-utils';
 import { ResultsCard } from './components/ResultsCard';
+import { DetailModal } from './components/DetailModal';
 import type { Preset, ApiResponse } from '@shared/types';
 const NEON_COLORS = {
   pink: '#FF2972',
@@ -24,25 +25,20 @@ const NEON_COLORS = {
   orange: '#FFB84D',
 };
 type GeneratedSets = { setA: number[], setB: number[], setC: number[] } | null;
+type DetailNumberData = { num: number; scores: Scores; freq: Frequency; pair: PairMatrix; } | null;
 async function fetchPresets(): Promise<Preset[]> {
-  const res = await fetch('/api/presets');
-  const data: ApiResponse<Preset[]> = await res.json();
-  if (!data.success || !data.data) {
-    throw new Error(data.error || 'Failed to fetch presets');
-  }
-  return data.data;
+  // Mocking API for Phase 1
+  // In a real scenario, this would fetch from the DO.
+  const presets = localStorage.getItem('lottery_presets_v1');
+  return presets ? JSON.parse(presets) : [];
 }
 async function savePreset(preset: Omit<Preset, 'id'>): Promise<Preset[]> {
-  const res = await fetch('/api/presets', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(preset),
-  });
-  const data: ApiResponse<Preset[]> = await res.json();
-  if (!data.success || !data.data) {
-    throw new Error(data.error || 'Failed to save preset');
-  }
-  return data.data;
+  // Mocking API for Phase 1
+  const presets = await fetchPresets();
+  const newPreset = { ...preset, id: crypto.randomUUID() };
+  const updatedPresets = [...presets, newPreset];
+  localStorage.setItem('lottery_presets_v1', JSON.stringify(updatedPresets));
+  return updatedPresets;
 }
 export function HomePage() {
   const queryClient = useQueryClient();
@@ -51,6 +47,7 @@ export function HomePage() {
   const [generatedSets, setGeneratedSets] = useState<GeneratedSets>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [detailNumberData, setDetailNumberData] = useState<DetailNumberData>(null);
   const { data: presets, isLoading: isLoadingPresets } = useQuery({
     queryKey: ['presets'],
     queryFn: fetchPresets,
@@ -107,6 +104,9 @@ export function HomePage() {
       toast.success(`Preset "${preset.name}" loaded.`);
     }
   };
+  const openDetailModal = useCallback((num: number) => {
+    setDetailNumberData({ num, scores, freq, pair });
+  }, [scores, freq, pair]);
   return (
     <>
       <div className="min-h-screen bg-background text-foreground relative overflow-x-hidden">
@@ -159,7 +159,7 @@ export function HomePage() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2"><BarChart className="text-primary" /> Number Frequency</CardTitle>
-                      <CardDescription>How many times each number appeared in the dataset.</CardDescription>
+                      <CardDescription>How many times each number appeared in the dataset. Click a bar for details.</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div style={{ width: '100%', height: 300 }}>
@@ -174,7 +174,7 @@ export function HomePage() {
                                 borderRadius: "var(--radius)",
                               }}
                             />
-                            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                            <Bar dataKey="count" radius={[4, 4, 0, 0]} onClick={(data) => openDetailModal(data.num)} className="cursor-pointer">
                               {frequencyData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={index < 5 ? NEON_COLORS.pink : index < 15 ? NEON_COLORS.cyan : NEON_COLORS.orange} />
                               ))}
@@ -264,9 +264,9 @@ export function HomePage() {
                   </div>
                 ) : generatedSets ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <ResultsCard title="Set A" description="Conservative" numbers={generatedSets.setA} scores={scores} color={NEON_COLORS.pink} delay={0} onRegenerate={handleGenerate} />
-                    <ResultsCard title="Set B" description="Spread" numbers={generatedSets.setB} scores={scores} color={NEON_COLORS.cyan} delay={0.1} onRegenerate={handleGenerate} />
-                    <ResultsCard title="Set C" description="Exploratory" numbers={generatedSets.setC} scores={scores} color={NEON_COLORS.orange} delay={0.2} onRegenerate={handleGenerate} />
+                    <ResultsCard title="Set A" description="Conservative" numbers={generatedSets.setA} scores={scores} color={NEON_COLORS.pink} delay={0} onRegenerate={handleGenerate} onNumberClick={openDetailModal} />
+                    <ResultsCard title="Set B" description="Spread" numbers={generatedSets.setB} scores={scores} color={NEON_COLORS.cyan} delay={0.1} onRegenerate={handleGenerate} onNumberClick={openDetailModal} />
+                    <ResultsCard title="Set C" description="Exploratory" numbers={generatedSets.setC} scores={scores} color={NEON_COLORS.orange} delay={0.2} onRegenerate={handleGenerate} onNumberClick={openDetailModal} />
                   </div>
                 ) : (
                   <p className="text-center text-muted-foreground">Click "Generate Sets" to begin.</p>
@@ -279,6 +279,7 @@ export function HomePage() {
           </div>
         </div>
       </div>
+      <DetailModal isOpen={!!detailNumberData} onClose={() => setDetailNumberData(null)} numberData={detailNumberData} />
       <Toaster richColors closeButton />
     </>
   );

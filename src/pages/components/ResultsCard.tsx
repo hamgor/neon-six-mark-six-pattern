@@ -14,8 +14,9 @@ interface ResultsCardProps {
   color: string;
   delay?: number;
   onRegenerate?: () => void;
+  onNumberClick?: (num: number) => void;
 }
-export function ResultsCard({ title, description, numbers, scores, color, delay = 0, onRegenerate }: ResultsCardProps) {
+export function ResultsCard({ title, description, numbers, scores, color, delay = 0, onRegenerate, onNumberClick }: ResultsCardProps) {
   const handleCopy = () => {
     navigator.clipboard.writeText(numbers.join(', '));
     toast.success(`Set "${title}" copied to clipboard!`);
@@ -56,15 +57,16 @@ export function ResultsCard({ title, description, numbers, scores, color, delay 
             {numbers.map((num) => (
               <HoverCard key={num} openDelay={100} closeDelay={100}>
                 <HoverCardTrigger asChild>
-                  <div
-                    className="center size-12 rounded-full font-mono font-bold text-lg bg-secondary text-secondary-foreground shadow-inner cursor-help"
+                  <button
+                    onClick={() => onNumberClick && onNumberClick(num)}
+                    className="center size-12 rounded-full font-mono font-bold text-lg bg-secondary text-secondary-foreground shadow-inner cursor-pointer hover:scale-105 transition-transform"
                     style={{
                       color,
                       boxShadow: `0 0 10px ${color}33, inset 0 2px 4px #00000033`,
                     }}
                   >
                     {num}
-                  </div>
+                  </button>
                 </HoverCardTrigger>
                 <HoverCardContent className="w-auto p-2 text-xs">
                   Score: {(scores[num] * 100).toFixed(1)}
