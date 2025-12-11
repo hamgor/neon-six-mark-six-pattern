@@ -1,30 +1,25 @@
 import { Hono } from "hono";
 import { Env } from './core-utils';
-import type { DemoItem, ApiResponse } from '@shared/types';
-
+import type { DemoItem, ApiResponse, Preset } from '@shared/types';
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
     app.get('/api/test', (c) => c.json({ success: true, data: { name: 'CF Workers Demo' }}));
-
     // Demo items endpoint using Durable Object storage
     app.get('/api/demo', async (c) => {
         const durableObjectStub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
         const data = await durableObjectStub.getDemoItems();
         return c.json({ success: true, data } satisfies ApiResponse<DemoItem[]>);
     });
-
     // Counter using Durable Object
     app.get('/api/counter', async (c) => {
         const durableObjectStub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
         const data = await durableObjectStub.getCounterValue();
         return c.json({ success: true, data } satisfies ApiResponse<number>);
     });
-    
     app.post('/api/counter/increment', async (c) => {
         const durableObjectStub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
         const data = await durableObjectStub.increment();
         return c.json({ success: true, data } satisfies ApiResponse<number>);
     });
-
     // Demo item management endpoints
     app.post('/api/demo', async (c) => {
         const body = await c.req.json() as DemoItem;
@@ -32,7 +27,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         const data = await durableObjectStub.addDemoItem(body);
         return c.json({ success: true, data } satisfies ApiResponse<DemoItem[]>);
     });
-
     app.put('/api/demo/:id', async (c) => {
         const id = c.req.param('id');
         const body = await c.req.json() as Partial<Omit<DemoItem, 'id'>>;
@@ -40,11 +34,35 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         const data = await durableObjectStub.updateDemoItem(id, body);
         return c.json({ success: true, data } satisfies ApiResponse<DemoItem[]>);
     });
-
     app.delete('/api/demo/:id', async (c) => {
         const id = c.req.param('id');
         const durableObjectStub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
         const data = await durableObjectStub.deleteDemoItem(id);
         return c.json({ success: true, data } satisfies ApiResponse<DemoItem[]>);
+    });
+    // --- Preset Routes ---
+    app.get('/api/presets', async (c) => {
+        const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+        const data = await stub.getPresets();
+        return c.json({ success: true, data } satisfies ApiResponse<Preset[]>);
+    });
+    app.post('/api/presets', async (c) => {
+        const body = await c.req.json() as Omit<Preset, 'id'>;
+        const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+        const data = await stub.addPreset(body);
+        return c.json({ success: true, data } satisfies ApiResponse<Preset[]>);
+    });
+    app.put('/api/presets/:id', async (c) => {
+        const id = c.req.param('id');
+        const body = await c.req.json() as Preset;
+        const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+        const data = await stub.updatePreset(id, body);
+        return c.json({ success: true, data } satisfies ApiResponse<Preset[]>);
+    });
+    app.delete('/api/presets/:id', async (c) => {
+        const id = c.req.param('id');
+        const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+        const data = await stub.deletePreset(id);
+        return c.json({ success: true, data } satisfies ApiResponse<Preset[]>);
     });
 }
