@@ -42,27 +42,31 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     });
     // --- Preset Routes ---
     app.get('/api/presets', async (c) => {
+        const userId = c.req.query('userId') || 'global';
         const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
-        const data = await stub.getPresets();
+        const data = await stub.getPresets(userId);
         return c.json({ success: true, data } satisfies ApiResponse<Preset[]>);
     });
     app.post('/api/presets', async (c) => {
+        const userId = c.req.query('userId') || 'global';
         const body = await c.req.json() as Omit<Preset, 'id'>;
         const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
-        const data = await stub.addPreset(body);
+        const data = await stub.addPreset(body, userId);
         return c.json({ success: true, data } satisfies ApiResponse<Preset[]>);
     });
     app.put('/api/presets/:id', async (c) => {
+        const userId = c.req.query('userId') || 'global';
         const id = c.req.param('id');
         const body = await c.req.json() as Preset;
         const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
-        const data = await stub.updatePreset(id, body);
+        const data = await stub.updatePreset(id, body, userId);
         return c.json({ success: true, data } satisfies ApiResponse<Preset[]>);
     });
     app.delete('/api/presets/:id', async (c) => {
+        const userId = c.req.query('userId') || 'global';
         const id = c.req.param('id');
         const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
-        const data = await stub.deletePreset(id);
+        const data = await stub.deletePreset(id, userId);
         return c.json({ success: true, data } satisfies ApiResponse<Preset[]>);
     });
 }

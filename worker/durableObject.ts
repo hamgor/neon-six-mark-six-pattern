@@ -70,35 +70,42 @@ export class GlobalDurableObject extends DurableObject {
       return updatedItems;
     }
     // --- Preset Methods ---
-    async getPresets(): Promise<Preset[]> {
-      const presets = await this.ctx.storage.get<Preset[]>("lottery_presets_v1");
+    getPresetKey(userId?: string): string {
+        return `${userId || 'global'}_lottery_presets_v1`;
+    }
+    async getPresets(userId?: string): Promise<Preset[]> {
+      const key = this.getPresetKey(userId);
+      const presets = await this.ctx.storage.get<Preset[]>(key);
       if (presets) {
         return presets;
       }
       // Initialize with default if not exists
-      await this.ctx.storage.put("lottery_presets_v1", DEFAULT_PRESETS);
+      await this.ctx.storage.put(key, DEFAULT_PRESETS);
       return DEFAULT_PRESETS;
     }
-    async addPreset(preset: Omit<Preset, 'id'>): Promise<Preset[]> {
-      const presets = await this.getPresets();
+    async addPreset(preset: Omit<Preset, 'id'>, userId?: string): Promise<Preset[]> {
+      const key = this.getPresetKey(userId);
+      const presets = await this.getPresets(userId);
       const newPreset: Preset = {
         ...preset,
         id: crypto.randomUUID(),
       };
       const updatedPresets = [...presets, newPreset];
-      await this.ctx.storage.put("lottery_presets_v1", updatedPresets);
+      await this.ctx.storage.put(key, updatedPresets);
       return updatedPresets;
     }
-    async updatePreset(id: string, preset: Preset): Promise<Preset[]> {
-      const presets = await this.getPresets();
+    async updatePreset(id: string, preset: Preset, userId?: string): Promise<Preset[]> {
+      const key = this.getPresetKey(userId);
+      const presets = await this.getPresets(userId);
       const updatedPresets = presets.map(p => (p.id === id ? { ...p, ...preset, id } : p));
-      await this.ctx.storage.put("lottery_presets_v1", updatedPresets);
+      await this.ctx.storage.put(key, updatedPresets);
       return updatedPresets;
     }
-    async deletePreset(id: string): Promise<Preset[]> {
-      const presets = await this.getPresets();
+    async deletePreset(id: string, userId?: string): Promise<Preset[]> {
+      const key = this.getPresetKey(userId);
+      const presets = await this.getPresets(userId);
       const updatedPresets = presets.filter(p => p.id !== id);
-      await this.ctx.storage.put("lottery_presets_v1", updatedPresets);
+      await this.ctx.storage.put(key, updatedPresets);
       return updatedPresets;
     }
 }
