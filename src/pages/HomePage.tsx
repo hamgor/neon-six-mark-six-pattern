@@ -1,138 +1,207 @@
-// Home page of the app.
-// Currently a demo placeholder "please wait" screen.
-// Replace this file with your actual app UI. Do not delete it to use some other file as homepage. Simply replace the entire contents of this file.
-
-import { useEffect, useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
-
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { HAS_TEMPLATE_DEMO, TemplateDemo } from '@/components/TemplateDemo'
-import { Button } from '@/components/ui/button'
-import { Toaster, toast } from '@/components/ui/sonner'
-
-function formatDuration(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
+import React, { useState, useEffect, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { motion } from 'framer-motion';
+import { SlidersHorizontal, Wand2, BrainCircuit, History } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { MARKSIX_DRAWS } from '@shared/mock-data';
+import { computeScores, generateSets, DEFAULT_WEIGHTS, Weights, Frequency } from '@/lib/lottery-utils';
+import { ResultsCard } from './components/ResultsCard';
+const NEON_COLORS = {
+  pink: '#FF2972',
+  cyan: '#00FFE1',
+  orange: '#FFB84D',
+};
+type GeneratedSets = { setA: number[], setB: number[], setC: number[] } | null;
 export function HomePage() {
-  const [coins, setCoins] = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const [startedAt, setStartedAt] = useState<number | null>(null)
-  const [elapsedMs, setElapsedMs] = useState(0)
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [weights, setWeights] = useState<Weights>(DEFAULT_WEIGHTS);
+  const [generatedSets, setGeneratedSets] = useState<GeneratedSets>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { scores, freq, pair } = useMemo(() => computeScores(MARKSIX_DRAWS, weights), [weights]);
+  const frequencyData = useMemo(() => {
+    return Object.entries(freq)
+      .map(([num, count]) => ({ num: parseInt(num), count }))
+      .sort((a, b) => b.count - a.count);
+  }, [freq]);
   useEffect(() => {
-    if (!isRunning || startedAt === null) return
-
-    const t = setInterval(() => {
-      setElapsedMs(Date.now() - startedAt)
-    }, 250)
-
-    return () => clearInterval(t)
-  }, [isRunning, startedAt])
-
-  const formatted = useMemo(() => formatDuration(elapsedMs), [elapsedMs])
-
-  const onPleaseWait = () => {
-    setCoins((c) => c + 1)
-
-    if (!isRunning) {
-      // Resume from the current elapsed time
-      setStartedAt(Date.now() - elapsedMs)
-      setIsRunning(true)
-      toast.success('Building your app…', {
-        description: "Hang tight — we're setting everything up.",
-      })
-      return
-    }
-
-    setIsRunning(false)
-    toast.info('Still working…', {
-      description: 'You can come back in a moment.',
-    })
-  }
-
-  const onReset = () => {
-    setCoins(0)
-    setIsRunning(false)
-    setStartedAt(null)
-    setElapsedMs(0)
-    toast('Reset complete')
-  }
-
-  const onAddCoin = () => {
-    setCoins((c) => c + 1)
-    toast('Coin added')
-  }
-
+    const timer = setTimeout(() => {
+      handleGenerate();
+      setIsLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+  const handleGenerate = () => {
+    setIsGenerating(true);
+    toast.info('Generating new sets with current rules...');
+    setTimeout(() => {
+      const { scores: newScores, freq: newFreq, pair: newPair } = computeScores(MARKSIX_DRAWS, weights);
+      const sets = generateSets(newScores, newFreq, newPair);
+      setGeneratedSets(sets);
+      setIsGenerating(false);
+      toast.success('New sets generated!');
+    }, 300);
+  };
+  const handleWeightChange = (key: keyof Weights, value: number[]) => {
+    setWeights(prev => ({ ...prev, [key]: value[0] / 100 }));
+  };
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 overflow-hidden relative">
-      <ThemeToggle />
-      <div className="absolute inset-0 bg-gradient-rainbow opacity-10 dark:opacity-20 pointer-events-none" />
-
-      <div className="text-center space-y-8 relative z-10 animate-fade-in w-full">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-primary floating">
-            <Sparkles className="w-8 h-8 text-white rotating" />
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-balance leading-tight">
-            Creating your <span className="text-gradient">app</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto text-pretty">
-            Your application would be ready soon.
-          </p>
-        </div>
-
-        {HAS_TEMPLATE_DEMO ? (
-          <div className="max-w-5xl mx-auto text-left">
-            <TemplateDemo />
-          </div>
-        ) : (
-          <>
-            <div className="flex justify-center gap-4">
-              <Button
-                size="lg"
-                onClick={onPleaseWait}
-                className="btn-gradient px-8 py-4 text-lg font-semibold hover:-translate-y-0.5 transition-all duration-200"
-                aria-live="polite"
+    <>
+      <div className="min-h-screen bg-background text-foreground relative overflow-x-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(39,39,42,0.8),rgba(255,255,255,0))] pointer-events-none" />
+        <ThemeToggle className="fixed top-4 right-4" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="py-8 md:py-10 lg:py-12">
+            <header className="text-center space-y-4 mb-12">
+              <motion.h1
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-5xl md:text-7xl font-display font-bold"
+                style={{ textShadow: `0 0 10px ${NEON_COLORS.pink}55, 0 0 20px ${NEON_COLORS.cyan}55` }}
               >
-                Please Wait
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <div>
-                Time elapsed:{' '}
-                <span className="font-medium tabular-nums text-foreground">{formatted}</span>
+                Neon Six
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto"
+              >
+                A visually outstanding, retro-styled Mark Six analyzer and candidate-generator.
+              </motion.p>
+            </header>
+            <main className="space-y-10">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="lg:col-span-2 space-y-8"
+                >
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2"><History className="text-primary" /> Recent Draws</CardTitle>
+                      <CardDescription>The last {MARKSIX_DRAWS.length} draws used for analysis.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {MARKSIX_DRAWS.slice(0, 5).map((draw, i) => (
+                          <div key={i} className="flex gap-1 p-2 border rounded-md bg-secondary/50">
+                            {draw.map(n => <span key={n} className="font-mono text-sm">{n}</span>)}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2"><BarChart className="text-primary" /> Number Frequency</CardTitle>
+                      <CardDescription>How many times each number appeared in the dataset.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer>
+                          <BarChart data={frequencyData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <XAxis dataKey="num" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                            <Tooltip
+                              contentStyle={{
+                                background: "hsl(var(--background))",
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "var(--radius)",
+                              }}
+                            />
+                            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                              {frequencyData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={index < 5 ? NEON_COLORS.pink : index < 15 ? NEON_COLORS.cyan : NEON_COLORS.orange} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                >
+                  <Card className="sticky top-8">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2"><BrainCircuit className="text-primary" /> Analysis Engine</CardTitle>
+                      <CardDescription>Tune the heuristics and generate new sets.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <Sheet>
+                        <SheetTrigger asChild>
+                          <Button variant="outline" className="w-full">
+                            <SlidersHorizontal className="mr-2 size-4" /> Adjust Rules
+                          </Button>
+                        </SheetTrigger>
+                        <SheetContent>
+                          <SheetHeader>
+                            <SheetTitle>Rule Configuration</SheetTitle>
+                            <SheetDescription>Adjust the weights for each heuristic to influence the number selection.</SheetDescription>
+                          </SheetHeader>
+                          <div className="space-y-4 py-4">
+                            {Object.entries(weights).map(([key, value]) => (
+                              <div key={key} className="space-y-2">
+                                <Label htmlFor={key} className="capitalize">{key} ({(value * 100).toFixed(0)}%)</Label>
+                                <Slider
+                                  id={key}
+                                  defaultValue={[value * 100]}
+                                  max={100}
+                                  step={1}
+                                  onValueChange={(v) => handleWeightChange(key as keyof Weights, v)}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </SheetContent>
+                      </Sheet>
+                      <Button onClick={handleGenerate} disabled={isGenerating} className="w-full bg-gradient-primary text-primary-foreground hover:scale-105 transition-transform duration-200">
+                        <Wand2 className="mr-2 size-4" /> {isGenerating ? 'Generating...' : 'Generate Sets'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </div>
-              <div>
-                Coins:{' '}
-                <span className="font-medium tabular-nums text-foreground">{coins}</span>
-              </div>
-            </div>
-
-            <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={onReset}>
-                Reset
-              </Button>
-              <Button variant="outline" size="sm" onClick={onAddCoin}>
-                Add Coin
-              </Button>
-            </div>
-          </>
-        )}
+              <Separator />
+              <section className="space-y-4">
+                <h2 className="text-3xl font-bold text-center">Generated Candidate Sets</h2>
+                {isLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <Skeleton className="h-48 rounded-lg" />
+                    <Skeleton className="h-48 rounded-lg" />
+                    <Skeleton className="h-48 rounded-lg" />
+                  </div>
+                ) : generatedSets ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <ResultsCard title="Set A" description="Conservative" numbers={generatedSets.setA} color={NEON_COLORS.pink} delay={0} />
+                    <ResultsCard title="Set B" description="Spread" numbers={generatedSets.setB} color={NEON_COLORS.cyan} delay={0.1} />
+                    <ResultsCard title="Set C" description="Exploratory" numbers={generatedSets.setC} color={NEON_COLORS.orange} delay={0.2} />
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground">Click "Generate Sets" to begin.</p>
+                )}
+              </section>
+            </main>
+            <footer className="text-center text-muted-foreground/80 mt-16">
+              <p>Built with ❤️ at Cloudflare</p>
+            </footer>
+          </div>
+        </div>
       </div>
-
-      <footer className="absolute bottom-8 text-center text-muted-foreground/80">
-        <p>Powered by Cloudflare</p>
-      </footer>
-
       <Toaster richColors closeButton />
-    </div>
-  )
+    </>
+  );
 }

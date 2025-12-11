@@ -1,22 +1,17 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Download, RefreshCw } from 'lucide-react';
+import { Copy, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { Scores } from '@/lib/lottery-utils';
 interface ResultsCardProps {
   title: string;
   description: string;
   numbers: number[];
-  scores: Scores;
   color: string;
   delay?: number;
-  onRegenerate?: () => void;
-  onNumberClick?: (num: number) => void;
 }
-export function ResultsCard({ title, description, numbers, scores, color, delay = 0, onRegenerate, onNumberClick }: ResultsCardProps) {
+export function ResultsCard({ title, description, numbers, color, delay = 0 }: ResultsCardProps) {
   const handleCopy = () => {
     navigator.clipboard.writeText(numbers.join(', '));
     toast.success(`Set "${title}" copied to clipboard!`);
@@ -40,38 +35,24 @@ export function ResultsCard({ title, description, numbers, scores, color, delay 
     >
       <Card className="overflow-hidden border-2 border-transparent hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
         <CardHeader className="p-0">
-          <div className="p-4 flex justify-between items-center" style={{ background: `linear-gradient(135deg, ${color} 0%, hsl(var(--primary)) 100%)` }}>
-            <div>
-              <CardTitle className="text-primary-foreground">{title}</CardTitle>
-              <p className="text-sm text-primary-foreground/80">{description}</p>
-            </div>
-            {onRegenerate && (
-              <Button size="icon" variant="ghost" onClick={onRegenerate} className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10">
-                <RefreshCw className="size-4" />
-              </Button>
-            )}
+          <div className="p-4" style={{ background: `linear-gradient(135deg, ${color} 0%, hsl(var(--primary)) 100%)` }}>
+            <CardTitle className="text-primary-foreground">{title}</CardTitle>
+            <p className="text-sm text-primary-foreground/80">{description}</p>
           </div>
         </CardHeader>
         <CardContent className="p-4 space-y-4">
           <div className="flex flex-wrap gap-2 justify-center">
             {numbers.map((num) => (
-              <HoverCard key={num} openDelay={100} closeDelay={100}>
-                <HoverCardTrigger asChild>
-                  <button
-                    onClick={() => onNumberClick && onNumberClick(num)}
-                    className="center size-12 rounded-full font-mono font-bold text-lg bg-secondary text-secondary-foreground shadow-inner cursor-pointer hover:scale-105 transition-transform"
-                    style={{
-                      color,
-                      boxShadow: `0 0 10px ${color}33, inset 0 2px 4px #00000033`,
-                    }}
-                  >
-                    {num}
-                  </button>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-auto p-2 text-xs">
-                  Score: {(scores[num] * 100).toFixed(1)}
-                </HoverCardContent>
-              </HoverCard>
+              <div
+                key={num}
+                className="center size-12 rounded-full font-mono font-bold text-lg bg-secondary text-secondary-foreground shadow-inner"
+                style={{
+                  color,
+                  boxShadow: `0 0 10px ${color}33, inset 0 2px 4px #00000033`,
+                }}
+              >
+                {num}
+              </div>
             ))}
           </div>
           <div className="flex gap-2 pt-2">
