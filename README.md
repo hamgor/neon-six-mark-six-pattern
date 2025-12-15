@@ -1,6 +1,6 @@
 # Neon Six — Mark Six Pattern Studio
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hamgor/neon-six-mark-six-pattern)
 
 Neon Six is a visually outstanding, retro-styled Mark Six analyzer and candidate-generator that helps analysts and hobbyists explore recent draw history and produce 3 high-probability candidate sets using heuristic rules (frequency, co-occurrence, overdue, last-digit, range balance, sum-range, and even/odd balance). It is not a magic predictor; it produces plausible high-probability sets using explainable heuristics and presents the rules and visual analytics in a refined UI.
 
@@ -125,7 +125,7 @@ Deploy to Cloudflare Workers for global, edge-based hosting with Durable Objects
 
 The deployment URL will be `https://neon-six-<account-id>.workers.dev`. Custom domains can be configured via Wrangler.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hamgor/neon-six-mark-six-pattern)
 
 ### Environment Variables
 
